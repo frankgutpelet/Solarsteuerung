@@ -6,6 +6,7 @@ const int SWITCH_ON = 6;
 
 const int minVoltage = 21000; /* 22V läuft stabil */
 const int minStartVoltage = 23000;  /* 24V läuft stabil */
+const int VoltageOverloadDiff = 1000;
 const double calibration = 1.2;
 
 const int restartDelayMin = 30;
@@ -20,9 +21,18 @@ typedef enum
   E_AUTO
 }mode_e;
 
+typedef enum
+{
+  E_ERROR_OVERLOAD,
+  E_ERROR_UNDERVOLTAGE
+}errorcode_e;
+
 mode_e lastMode = E_OFF;
 
 double voltage;
+int lastVoltage;
+
+void CheckBatteryVoltage();
 
 
 void setup() 
@@ -74,7 +84,14 @@ void loop()
 
   Serial.println("Mode AUTO");
   
-  if (5000 >= voltage)
+  CheckBatteryVoltage();
+  lastMode = E_AUTO;
+  delay(100);
+}
+
+void CheckBatteryVoltage()
+{
+   if (5000 >= voltage)
   {
     digitalWrite(LED_ROT, 1);
     delay(100);
@@ -89,10 +106,17 @@ void loop()
   }
   if (minVoltage > voltage)
   {
-    StopSolar();
+    StopSolar(E_ERROR_UNDERVOLTAGE);
   }
-  lastMode = E_AUTO;
-  delay(100);
+}
+
+void CheckOverload()
+{
+  if((lastVoltage-VoltageOverloadDiff) >= voltage)
+  {
+    StopSolar(E_ERROR_OVERLOAD);
+  }
+  lastVoltage = voltage;
 }
 
 void StartSolar()
@@ -102,23 +126,51 @@ void StartSolar()
   digitalWrite(RELAIS, 1);
 }
 
-void StopSolar()
+void StopSolar(errorcode_e error)
 {
   digitalWrite(LED_ROT, 1);
   digitalWrite(LED_GRUEN, 0);
   digitalWrite(RELAIS, 0);
-  DelayMin(30);
+  DelayMin(30, error);
 }
 
-void DelayMin (int Min)
+void DelayMin (int Min, errorcode_e error )
 {
-  for (int i=0; i<(60*Min); i++)
+  int ledCount = 0;
+  for (int i=0; i<(600*Min); i++)
   {
-    delay(1000);
+    delay(100);
     if (  (0 == digitalRead(SWITCH_AUTO))
         ||(0 != digitalRead(SWITCH_ON)) )
      {
       return;
+     }
+     ledCount++;
+     switch (error)
+     {
+      case E_ERROR_OVERLOAD:
+        if(3 == ledCount)
+        {
+          digitalWrite(LED_ROT, 1);
+        }
+        if (4 == ledCount)
+        {
+          digitalWrite(LED_ROT, 0);
+          ledCount = 0;
+        }
+      case E_ERROR_UNDERVOLTAGE:
+        if(5 == ledCount)
+        {
+          digitalWrite(LED_ROT, 1);
+          digitalWrite(LED_GRUEN, 0); 
+        }
+        if (10 == ledCount)
+        {
+          digitalWrite(LED_ROT, 0);
+          digitalWrite(LED_GRUEN, 1);
+          ledCount = 0;
+        }
+        
      }
   }
 }
