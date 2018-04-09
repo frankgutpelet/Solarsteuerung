@@ -4,7 +4,7 @@ const int RELAIS = 2;
 const int SWITCH_AUTO = 5;
 const int SWITCH_ON = 6;
 
-const int minVoltage = 21000; /* 22V läuft stabil */
+const int minVoltage = 20500; /* 22V läuft stabil */
 const int minStartVoltage = 23000;  /* 24V läuft stabil */
 const int VoltageOverloadDiff = 1000;
 const double calibration = 1.2;
