@@ -1,3 +1,6 @@
+//#define DEBUG
+
+
 const int LED_ROT = 3;
 const int LED_GRUEN = 4;
 const int RELAIS = 2;
@@ -6,7 +9,7 @@ const int SWITCH_ON = 6;
 
 const int minVoltage = 20500; /* 22V läuft stabil */
 const int minStartVoltage = 23000;  /* 24V läuft stabil */
-const int VoltageOverloadDiff = 1000;
+const int VoltageOverloadDiff = 1500;
 const double calibration = 1.2;
 
 const int restartDelayMin = 30;
@@ -46,9 +49,9 @@ void setup()
   digitalWrite(LED_ROT, 0);
   digitalWrite(LED_GRUEN, 0);
   digitalWrite(RELAIS, 0);
-
+#ifdef DEBUG
   Serial.begin(9600);
-
+#endif
 }
 
 void loop() 
@@ -57,16 +60,15 @@ void loop()
   voltage = (voltage / 1023)* systemVoltage * 10;
   voltage = voltage * calibration;
   
-  Serial.print(voltage); 
-  Serial.println(" mV");
-
   if(HIGH == digitalRead(SWITCH_ON))
   {
     lastMode = E_ON;
     digitalWrite(LED_ROT, 0);
     digitalWrite(LED_GRUEN, 1);
     digitalWrite(RELAIS, 1);
+#ifdef DEBUG
     Serial.println("Mode ON");
+#endif
     delay(1000);
     return;
   }
@@ -77,16 +79,21 @@ void loop()
     digitalWrite(LED_ROT, 0);
     digitalWrite(LED_GRUEN, 0);
     digitalWrite(RELAIS, 0);
+#ifdef DEBUG
     Serial.println("Mode OFF");
+#endif
     delay(1000);
     return;
   }
-
+#ifdef DEBUG
+  Serial.print(voltage); 
+  Serial.println(" mV");
   Serial.println("Mode AUTO");
-  
+#endif
+  CheckOverload();
   CheckBatteryVoltage();
   lastMode = E_AUTO;
-  delay(100);
+  //delay(100);
 }
 
 void CheckBatteryVoltage()
